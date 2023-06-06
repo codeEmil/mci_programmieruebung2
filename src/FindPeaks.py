@@ -84,23 +84,6 @@ class FindPeaks:
         pass
 
 
-    def get_absolute(self):     #this method has no use for now...
-        max = self.df_raw[0]["value"]
-        if self.df_peaks.empty():          
-            for index, row in self.df_raw.iterrows():
-                if row["value"] > max:
-                    max = row["value"]
-                    break
-        
-        else:
-            for index, row in self.df_peaks.iterrows():
-                if row["value"] > max:
-                    max = row["value"]
-                    break
-
-        return max
-        pass
-
     def add_baseline(self):
         """Calculates the vertical distance from each peak to its own baseline"""
         _peak_indices = self.df_peaks.index.values.tolist()     #get all indices of df_peaks
@@ -166,32 +149,42 @@ class FindPeaks:
     def plotPeaks(self):
         "Visualizes the data with marked peak locations"
         _peak_indices = self.df_peaks.index.values.tolist()
-
-        if ~ "Left Base" in self.df_peaks.columns:
-            return
             
         self.df_raw[self.scan_col].plot(figsize=(20,8))
         self.df_raw.iloc[_peak_indices][self.scan_col].plot(style='.', lw=10, color='red', marker="v")
         ##self.df_raw.iloc[_rbase_list + _lbase_list][self.scan_col].plot(style='.', lw=10, color='green', marker="^")
         
-        if ~ "Left Base" in self.df_peaks.columns:
+        if not "Left Base" in self.df_peaks.columns:
             return
 
         for idx, row in self.df_peaks.iterrows():
-                _x = idx
-                _y = self.df_raw.iloc[_x][self.scan_col]
+            _x = idx
+            _y = self.df_raw.iloc[_x][self.scan_col]
 
-                _xl = row["Left Base"]
-                _yl = self.df_raw.loc[_xl][self.scan_col]
+            _xl = row["Left Base"]
+            _yl = self.df_raw.loc[_xl][self.scan_col]
 
-                _xr = row["Right Base"]
-                _yr = self.df_raw.loc[_xr][self.scan_col]
+            _xr = row["Right Base"]
+            _yr = self.df_raw.loc[_xr][self.scan_col]
 
-                _delta_base = row["Vert. distance to Baseline"]
+            _delta_base = row["Vert. distance to Baseline"]
 
-                plt.plot([_xl, _xr], [_yl, _yr], color='m', linestyle='--', linewidth=1)
-                plt.plot([_x, _x], [_y, _y - _delta_base], color='m', linestyle='--', linewidth=1)
-                 
+            plt.plot([_xl, _xr], [_yl, _yr], color='m', linestyle='--', linewidth=1)
+            plt.plot([_x, _x], [_y, _y - _delta_base], color='m', linestyle='--', linewidth=1)
+
+        fig, ax = plt.subplots()
+
+        # Create a boxplot
+        ax.boxplot(self.df_raw[self.scan_col])
+
+        # Set labels and title
+        ax.set_xlabel('Data')
+        ax.set_ylabel('Values')
+        ax.set_title('Boxplot Example')
+
+        pass
+
+
 
 
 
