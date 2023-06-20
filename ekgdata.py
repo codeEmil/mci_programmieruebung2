@@ -4,6 +4,8 @@ from scipy.signal import find_peaks
 import collections
 
 # Klasse EKG-Data für Peakfinder, die uns ermöglicht peaks zu finden
+#Änderung
+
 
 class ECGdata:
     def __init__(self, path):
