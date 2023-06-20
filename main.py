@@ -3,6 +3,7 @@ import streamlit as st
 from PIL import Image
 import pandas as pd
 import matplotlib.pyplot as plt
+from ekgdata import ECGdata
 
 def load_person_data():
     file = open("data/person_db.json")
@@ -87,6 +88,7 @@ def main():
     tests = patient_data["ekg_tests"]
     selected_test = st.selectbox('Select Test', options=[f'Date: {test["date"]}, ID: {test["id"]}' for test in tests])
     if not selected_test:
+        st.error("No selected test!")
         return
 
     selected_test_id = int(selected_test.split(", ID: ")[1])
@@ -105,15 +107,13 @@ def main():
 
     st.subheader("ECG Data")
     result_link = f"{test_info['result_link']}"
-    df = pd.read_csv(result_link, delimiter="\t", header=None)
-    df.columns = ["Time [ms]", "Voltage [mV]"]
-    plt.plot(df["Voltage [mV]"], df["Time [ms]"])
-    plt.xlabel("Time [ms]")
-    plt.ylabel("Voltage [mV]")
-    plt.title("ECG Data")
-    plt.xlim(15000, 20000)  # Set X-axis limit to 0-1000 ms
-    st.pyplot(plt)
+
+    my_ecg_data = ECGdata(result_link)
     
+    my_ecg_data.plot_time_series()
+    st.pyplot(plt)
+    my_ecg_data.show_histogram_hr()
+    st.pyplot(plt)
 
 
 if __name__ == '__main__':
