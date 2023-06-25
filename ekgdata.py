@@ -3,30 +3,21 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import collections
 
-# Klasse EKG-Data für Peakfinder, die uns ermöglicht peaks zu finden
-#Änderung
-
 
 class ECGdata:
     def __init__(self, path):
-        '''Methode zum Erstellen eines DataFrames'''
+        '''creating a dataframe'''
         self.df_peaks = pd.DataFrame
-        self.maximal_bpm = 0
-        self.minimal_bpm = 0
-        self.test_time = 0
-        self.average_hr = 0
-
         column_names = ["Amplitude [mV]", "Time [ms]"]
         self.df_ekg = pd.read_csv(path, sep="\t", header=0, names=column_names)  
         self.find_peaks()
 
 
     def find_peaks(self):        
-        '''Methode zum Erkennen von Peaks gibt diese als data frame zurück'''
-        #------------------Detect Peaks-----------------------
-        # Erstellen einer Liste mit den Daten
-        np_array = self.df_ekg["Amplitude [mV]"].values
-        np_array_time = self.df_ekg["Time [ms]"].values
+        '''method to find peaks'''
+        #------------------detecting the peaks-----------------------
+        np_array = self.df_ekg["Amplitude [mV]"].values[::2]
+        np_array_time = self.df_ekg["Time [ms]"].values[::2]
         # scipy funktion zum Peaks finden
         R_peaks, _ = find_peaks(np_array , height=350)
         #werte aus funktion abspeichern für dataframe
@@ -34,24 +25,23 @@ class ECGdata:
         time = np_array_time[R_peaks]
         #dataframe erstellen
         self.df_peaks = pd.DataFrame.from_dict({"Indizes":R_peaks, "Time [ms]":time,"Amplitude [mV]":values})
-        
-        #------------------Calculate delta t-------------------
+
+        #------------------calculating delta t-------------------
         distance_after = []
         for index in self.df_peaks.index:
             if index > len(self.df_peaks.index) - 2:
                 break
-            #aktuelle nud nächste zeit finden
-            aktuelle_zeit = self.df_peaks.iloc[index]["Time [ms]"]
-            nachfolgende_zeit = self.df_peaks.iloc[index + 1]["Time [ms]"]
+            #finding time before and after 
+            current_time = self.df_peaks.iloc[index]["Time [ms]"]
+            next_time = self.df_peaks.iloc[index + 1]["Time [ms]"]
             #Abstände nachher berechnen  
-            nachher = nachfolgende_zeit - aktuelle_zeit
-            distance_after.append(nachher)
-
-        #Letzten Wert(=0) an Liste anhängen
+            difference_next = next_time - current_time
+            distance_after.append(difference_next)
+        #appending a 0 at the end of the list
         distance_after.append(0)
         self.df_peaks ["dt next [ms]"] = distance_after 
         
-        #------------------Calculate heartrate---------------------
+        #------------------calculating the heartrate---------------------
         momentary_hr = []
         for next in self.df_peaks["dt next [ms]"]:
             if next == 0:
@@ -59,65 +49,54 @@ class ECGdata:
             else:
                 heartrate = 60000 / next
             momentary_hr.append(heartrate)
-                
-        self.df_peaks["BPM"] = momentary_hr     
+        self.df_peaks["Momentary Beats per Minute"] = momentary_hr 
 
 
     def get_average_hr(self):
-        '''Methode zur ungefähren Berechnung der Herzrate'''
-        # Zuerst gibt es keine HR
+        '''method to calculate the heartrate '''
         self.average_hr = None
-        # Nach Blick in die Daten: nur jeder zweite Peak ist eine R-Zacke
         peak_cnt = len(self.df_peaks)
-        #Daten sind mit f=1000 Hz aufgezeichnet worden. 1 Beobachtung ist 1 ms
+        #f = 100Hz
         self.test_time = (self.df_peaks["Time [ms]"][peak_cnt - 1] - self.df_peaks["Time [ms]"][0]) / 1000 / 60
         self.average_hr = peak_cnt / self.test_time
         return self.average_hr
 
     
     def plot_time_series(self):
-        '''Hier ist eine Methode zum Erstellen eines Lineplot'''
-        np_array_time = self.df_ekg["Time [ms]"].values
-        np_array = self.df_ekg["Amplitude [mV]"].values
-        # Ausschnitt festlegen
-        ansicht_anfang = 1500
-        ansicht_ende = 3500
-        x = np_array_time[ansicht_anfang:ansicht_ende]
-        y = np_array[ansicht_anfang:ansicht_ende]
-
+        '''method to calculate the lineplot with the peaks'''
+        np_array_time = self.df_ekg["Time [ms]"].values[::2]
+        np_array = self.df_ekg["Amplitude [mV]"].values[::2]
+        time = np_array_time
+        voltage = np_array
         plt.subplot()
-        #Scipy-funktion zum Darstellen der peaks
-        R_peaks, _ = find_peaks(y, height=350, distance=1)
-        T_peaks, _ = find_peaks(y, height=(310,340), distance=1)
-        P_peaks, _ = find_peaks(y, height=(302,310), distance=1)
-        #Linie erstellen
-        plt.plot(x, y)
-        #Marker erstellen
-        plt.plot(x[R_peaks], y[R_peaks], "x", label="R", color="red")
-        plt.plot(x[T_peaks], y[T_peaks], "x", label="T", color="blue" )
-        plt.plot(x[P_peaks], y[P_peaks], "x", label="P", color="green")
+        #Scipy-function finds the peaks
+        R_peaks, _ = find_peaks(voltage, height=350, distance=1)
+        T_peaks, _ = find_peaks(voltage, height=(310,340), distance=1)
+        P_peaks, _ = find_peaks(voltage, height=(302,310), distance=1)
+        plt.plot(time, voltage)
+        plt.plot(time[R_peaks], voltage[R_peaks], "x", label="R", color="red") #peakmarker
+        plt.plot(time[T_peaks], voltage[T_peaks], "x", label="T", color="blue" ) #peakmarker
+        plt.plot(time[P_peaks], voltage[P_peaks], "x", label="P", color="green") #peakmarker
 
         plt.xlabel("Time [ms]")
         plt.ylabel("Voltage [mV]")
         plt.title("ECG Data")
-        # Wenn das Label "R wave" ist, verdeckt es die erste Welle-> deswegen nur R
         plt.legend(loc='upper left')
 
 
     def show_boxplot_distances(self):
-        '''Zeige einen Boxplot über die Distanzen zwischen Peaks'''
+        '''Boxplot with distances between peaks'''
         boxplot = []
         for distance in self.df_peaks["dt next [ms]"]:
             if distance > 0:
                 boxplot.append(distance)
-
         plt.boxplot(boxplot)
-        plt.suptitle("Verteilung der Abstände zwischen den Peaks", fontsize=12, fontweight='bold')
-        plt.title ("ohne 0-Abstände", fontsize=12)
+        plt.suptitle("Distribution of the distances between the peaks", fontsize=12, fontweight='bold')
+        plt.title ("without the zeros", fontsize=12)
 
 
     def show_histogram_peaks(self):
-        '''Methode zum erstellen eines Histograms der Peaks'''
+        '''Histogram of peaks'''
         plt.hist(self.df_peaks["Amplitude [mV]"])
         plt.title("Histogram of Peaks",  fontsize=12, fontweight='bold')
         plt.xlabel("Value of Peaks in [mV]")
@@ -126,18 +105,12 @@ class ECGdata:
 
 
     def get_hr_info(self):
-        '''Methode zum Aufrufen der 3 Methoden für Abstand, Amplitude & Höhe'''
+        '''Method to calculate heart rate information'''
         info = {}
-        info["Testdauer"] = self.test_time
-        info["Durchschnittlicher_heartrate"] = self.test_time
-        info["Minimaler_heartrate"] = self.test_time
-        info["Maximaler_heartrate"] = self.test_time
-
-        #print("Testdauer: ", self.test_time)
-        #print("Durchschnittlicher heartrate: ", self.average_hr )       
-        #print("Minimaler heartrate: ", self.minimal_bpm)
-        #print("Maximaler heartrate. ", self.maximal_bpm)
-
+        info["Test Duration"] = self.test_time
+        info["Average Heart Rate"] = self.average_hr
+        info["Minimum Heart Rate"] = self.minimal_bpm
+        info["Maximum Heart Rate"] = self.maximal_bpm
         return info
 
         
@@ -145,7 +118,6 @@ class ECGdata:
         '''Shows all available plots'''
         print(self.df_peaks.head())
         print(self.df_peaks.tail())
-
         self.plot_time_series()
         self.show_histogram_peaks()
         self.show_boxplot_distances()
@@ -155,15 +127,15 @@ class ECGdata:
     def show_histogram_hr(self):
         '''Methode zum erstellen eines Histograms der Peaks'''
         plt.subplot()
-        plt.hist(self.df_peaks["BPM"][0:len(self.df_peaks)-2])
+        plt.hist(self.df_peaks["Momentary Beats per Minute"][0:len(self.df_peaks)-2])
         plt.title("Histogram of BPM",  fontsize=12, fontweight='bold')
-        plt.xlabel("BPM")
+        plt.xlabel("Momentary Beats per Minute")
         plt.yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
            
 
     def get_min_hr(self):
-        '''Berechnung des Minimalen heartrate'''
-        heartrates = self.df_peaks["BPM"]
+        '''method to calculate the min heartrate'''
+        heartrates = self.df_peaks["Momentary Beats per Minute"]
         heartrates.sort()
         deq = collections.deque(heartrates)
         deq.popleft()
@@ -174,22 +146,81 @@ class ECGdata:
 
 
     def get_max_hr(self):
-        '''Berechnung des Maximalen heartrate'''
-        heartrates = self.df_peaks["BPM"]
+        '''method to calculate the max heartrate'''
+        heartrates = self.df_peaks["Momentary Beats per Minute"]
         heartrates.sort(reverse=True)
         self.maximal_bpm = heartrates[0]
         print(self.maximal_bpm)    
         return self.maximal_bpm
 
 
-#my_peakfinder = ECGdata(r"data\ekg_data\01_Ruhe.txt")
+    def plot_bpm(self):
+        '''method to create a line plot of the bpm'''
+        #The section could be solved shorter, but the accuracy here is very high
+        verlauf = []
+        for index in self.df_peaks.index:
+            if index == 0:
+                verlauf.append(self.df_peaks.iloc[index]["Momentary Beats per Minute"].mean())
+            elif index == 1:
+                verlauf.append(self.df_peaks.iloc[index-1:index+1]["Momentary Beats per Minute"].mean())
+            elif index == 2:
+                verlauf.append(self.df_peaks.iloc[index-2:index+2]["Momentary Beats per Minute"].mean())
+            elif index == 3:
+                verlauf.append(self.df_peaks.iloc[index-3:index+3]["Momentary Beats per Minute"].mean())
+            elif index == 4:
+                verlauf.append(self.df_peaks.iloc[index-4:index+4]["Momentary Beats per Minute"].mean())
+            elif index == 5:
+                verlauf.append(self.df_peaks.iloc[index-5:index+5]["Momentary Beats per Minute"].mean())
+            elif index == 6:
+                verlauf.append(self.df_peaks.iloc[index-6:index+6]["Momentary Beats per Minute"].mean())
+            elif index == 7:
+                verlauf.append(self.df_peaks.iloc[index-7:index+7]["Momentary Beats per Minute"].mean())
+            elif index == 8:
+                verlauf.append(self.df_peaks.iloc[index-8:index+8]["Momentary Beats per Minute"].mean())
+            elif index == 9:
+                verlauf.append(self.df_peaks.iloc[index-9:index+9]["Momentary Beats per Minute"].mean())
+            elif index > 9 and index <= 19:
+                verlauf.append(self.df_peaks.iloc[index-10:index+10]["Momentary Beats per Minute"].mean())
+            elif index > 19 and index <= 29:
+                verlauf.append(self.df_peaks.iloc[index-20:index+20]["Momentary Beats per Minute"].mean())
+            elif index > 29 and index <= len(self.df_peaks)-32:
+                verlauf.append(self.df_peaks.iloc[index-30:index+30]["Momentary Beats per Minute"].mean())
+            elif index  > len(self.df_peaks)-32 and index <= len(self.df_peaks)-22:
+                verlauf.append(self.df_peaks.iloc[index-20:index+20]["Momentary Beats per Minute"].mean())
+            elif index > len(self.df_peaks)-22  and index <= len(self.df_peaks)-12:
+                verlauf.append(self.df_peaks.iloc[index-10:index+10]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-11:
+                verlauf.append(self.df_peaks.iloc[index-9:index+9]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-10:
+                verlauf.append(self.df_peaks.iloc[index-8:index+8]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-9:
+                verlauf.append(self.df_peaks.iloc[index-7:index+7]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-8:
+                verlauf.append(self.df_peaks.iloc[index-6:index+6]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-7:
+                verlauf.append(self.df_peaks.iloc[index-5:index+5]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-6:
+                verlauf.append(self.df_peaks.iloc[index-4:index+4]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-5:
+                verlauf.append(self.df_peaks.iloc[index-3:index+3]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-4:
+                verlauf.append(self.df_peaks.iloc[index-2:index+2]["Momentary Beats per Minute"].mean())
+            elif index == len(self.df_peaks)-3:
+                verlauf.append(self.df_peaks.iloc[index-1:index+1]["Momentary Beats per Minute"].mean())
+            else:
+                verlauf.append(self.df_peaks.iloc[index]["Momentary Beats per Minute"].mean())
+        #append data to the dataframe
+        self.df_peaks ["Average Heartrate"] = verlauf
 
-#my_peakfinder.heartrate = 10
-#my_peakfinder.find_peaks()
-
-#my_peakfinder.get_average_hr()
-#my_peakfinder.get_max_hr()
-#my_peakfinder.get_min_hr()
-#my_peakfinder.get_hr_info()
-
-#my_peakfinder.show_diagrams()
+        bpm = self.df_peaks["Momentary Beats per Minute"][0:(len(self.df_peaks)-1)][::2]
+        time = self.df_peaks["Time [ms]"][0:(len(self.df_peaks)-1)][::2]/1000/60
+        average_heartrate = self.df_peaks["Average Heartrate"][0:(len(self.df_peaks)-1)][::2]
+        plt.plot(time, bpm, label ="current heartrate")
+        plt.title("Heartrate")
+        plt.plot(time, average_heartrate ,label ="Average Heartrate", color="orange", linewidth =3)
+        plt.axhline(y=80, xmin=0, xmax=len(self.df_peaks)-1, linestyle="--", color="red", linewidth =1, label ="Upper limit of normal values at rest")
+        plt.axhline(y=40, xmin=0, xmax=len(self.df_peaks)-1, linestyle="--", color="green", linewidth =1, label ="Lower limit of normal values at rest")
+        plt.legend()
+        plt.ylabel("Heartrate")
+        plt.xlabel("Time [min]")
+        plt.show()
