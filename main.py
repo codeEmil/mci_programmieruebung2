@@ -210,8 +210,8 @@ def main():
                     #All the Plots within a test
                     show_line_plot = st.checkbox("ECG [Time / Voltage]", value=False)
                     if show_line_plot:
-                        st.write("With the Sliders the desired Timeframe of the ECG can be chosen.")
-                        st.write("The ECG is", time/1000/60, "minutes long")
+                        st.write("Use the Slider to choose a certain timeframe.")
+                        st.write("Please be aware that the upper Slider needs to be smaller the the bottom one. Otherwise the axes will be from left to right!")
                         max_value = int(my_ecg_data.df_ekg.iloc[-1]['Time [ms]'])
                         x_min_value = st.slider("Minimum Time Value", min_value=0, max_value=max_value, value=0, step=1)
                         x_max_value = st.slider("Maximum Time Value", min_value=0, max_value=max_value, value=max_value, step=1)
@@ -244,6 +244,7 @@ def main():
             if st.button("Log Out"):
                 st.session_state.logged_in = False
                 st.session_state.current_user = None
+
 
 if __name__ == '__main__':
     main()
