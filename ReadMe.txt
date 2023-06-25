@@ -1,6 +1,6 @@
+Open Browser: python -m streamlit main.py
 
 Ein paar Dinge haben wir noch zusätzlich dazu gemacht zu den im Unterricht besprochenen Aufgaben.
-
 Zusatz Aufgaben:
 
    + Herzrate im sinnvollen gleitenden Durchschnitt als Plot anzeigen
