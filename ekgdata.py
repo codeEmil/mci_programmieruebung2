@@ -112,8 +112,13 @@ class ECGdata:
         info["Minimum Heart Rate"] = self.minimal_bpm
         info["Maximum Heart Rate"] = self.maximal_bpm
         return info
+    
+        #print("Testdauer: ", self.test_time, "min / ", self.test_time_sec, "s")
+        #print("Durchschnittlicher Puls: ", self.get_average_hr)       
+        #print("Minimaler Puls: ", self.get_max_hr)
+        #print("Maximaler Puls. ", self.get_min_hr)
 
-        
+
     def show_diagrams(self):
         '''Shows all available plots'''
         print(self.df_peaks.head())
@@ -156,7 +161,7 @@ class ECGdata:
 
     def plot_bpm(self):
         '''method to create a line plot of the bpm'''
-        #The section could be solved shorter, but the accuracy here is very high
+        #The section could be solved shorter, but the accuracy here is very high!
         verlauf = []
         for index in self.df_peaks.index:
             if index == 0:

@@ -43,9 +43,10 @@ def login():
     user_data = json.load(file)
 
     st.subheader("Login")
+    st.write("Please insert username and password to enter")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    st.write("For correction: Username = test / PW = test - would not be written if used correctly of course :)")
+    st.write("Hint: Username = test / PW = test - would not be written if used correctly of course :)")
     if not st.button("Login"):
         return
     if user_data[username]:
@@ -206,6 +207,7 @@ def main():
                     #printing the test time in seconds and minutes
                     time = my_ecg_data.df_ekg.iloc[-1]['Time [ms]']
                     st.write("The ECG is", time/1000, "seconds long (", time/1000/60,"minutes)")
+                    st.write("To see the visualized data please click on the desired representation")
 
                     #All the Plots within a test
                     show_line_plot = st.checkbox("ECG [Time / Voltage]", value=False)
